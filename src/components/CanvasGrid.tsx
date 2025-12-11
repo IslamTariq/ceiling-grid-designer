@@ -138,6 +138,79 @@ export default function CanvasGrid({
 
     const dpr = window.devicePixelRatio || 1;
 
+    const isValidDropTargt = (
+      targetCell: GridCell | undefined,
+      dropRow: number,
+      dropCol: number,
+      startRow: number | null,
+      startCol: number | null
+    ): boolean => {
+      return (
+        !targetCell?.invalid &&
+        (startRow === null ||
+          startCol === null ||
+          dropRow !== startRow ||
+          dropCol !== startCol)
+      );
+    };
+
+    const drawCellComponent = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      cell: GridCell,
+      baseCellSize: number
+    ) => {
+      if (cell?.invalid) {
+        ctx.fillStyle = componentColors.invalid;
+        ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
+        ctx.fillStyle = "#666";
+        ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(componentSymbols.invalid, x + baseCellSize / 2, y + baseCellSize / 2);
+      }
+
+      if (cell?.component) {
+        const compType = cell.component.type;
+        ctx.fillStyle = componentColors[compType];
+        ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
+        ctx.fillStyle = "#fff";
+        ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(componentSymbols[compType], x + baseCellSize / 2, y + baseCellSize / 2);
+      }
+    };
+
+
+    const drawDragPreview = (
+      ctx: CanvasRenderingContext2D,
+      dragMousePos: { x: number; y: number },
+      draggedComponent: { type: ComponentType; id: string },
+      cellSize: number
+    ) => {
+      const previewSize = cellSize * 0.8;
+      const previewX = dragMousePos.x - previewSize / 2;
+      const previewY = dragMousePos.y - previewSize / 2;
+
+      ctx.fillStyle = `${componentColors[draggedComponent.type]}CC`;
+      ctx.fillRect(previewX, previewY, previewSize, previewSize);
+      ctx.strokeStyle = componentColors[draggedComponent.type];
+      ctx.lineWidth = 2;
+      ctx.strokeRect(previewX, previewY, previewSize, previewSize);
+
+      ctx.fillStyle = "#fff";
+      ctx.font = `${previewSize * 0.5}px "Material Icons"`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        componentSymbols[draggedComponent.type],
+        previewX + previewSize / 2,
+        previewY + previewSize / 2
+      );
+    };
+
     const draw = () => {
       if (!ctx || !canvas) return;
 
@@ -198,26 +271,7 @@ export default function CanvasGrid({
           }
 
           const cell = gridData[row]?.[col];
-          if (cell?.invalid) {
-            ctx.fillStyle = componentColors.invalid;
-            ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
-            ctx.fillStyle = "#666";
-            ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(componentSymbols.invalid, x + baseCellSize / 2, y + baseCellSize / 2);
-          }
-
-          if (cell?.component) {
-            const compType = cell.component.type;
-            ctx.fillStyle = componentColors[compType];
-            ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
-            ctx.fillStyle = "#fff";
-            ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(componentSymbols[compType], x + baseCellSize / 2, y + baseCellSize / 2);
-          }
+          drawCellComponent(ctx, x, y, cell, baseCellSize);
         }
       }
 
@@ -226,11 +280,13 @@ export default function CanvasGrid({
         const y = startY + dragCurrentCell.row * baseCellSize;
         const cell = gridData[dragCurrentCell.row]?.[dragCurrentCell.col];
 
-        const isValidDrop =
-          !cell?.invalid &&
-          (!dragStartCell ||
-            dragCurrentCell.row !== dragStartCell.row ||
-            dragCurrentCell.col !== dragStartCell.col);
+        const isValidDrop = isValidDropTargt(
+          cell,
+          dragCurrentCell.row,
+          dragCurrentCell.col,
+          dragStartCell?.row ?? null,
+          dragStartCell?.col ?? null
+        );
 
         if (isValidDrop) {
           ctx.fillStyle = "rgba(76, 175, 80, 0.3)";
@@ -292,28 +348,10 @@ export default function CanvasGrid({
       }
 
       ctx.restore();
-
+      
 
       if (isDragging && draggedComponent && dragMousePos) {
-        const previewSize = cellSize * 0.8;
-        const previewX = dragMousePos.x - previewSize / 2;
-        const previewY = dragMousePos.y - previewSize / 2;
-
-        ctx.fillStyle = `${componentColors[draggedComponent.type]}CC`;
-        ctx.fillRect(previewX, previewY, previewSize, previewSize);
-        ctx.strokeStyle = componentColors[draggedComponent.type];
-        ctx.lineWidth = 2;
-        ctx.strokeRect(previewX, previewY, previewSize, previewSize);
-
-        ctx.fillStyle = "#fff";
-        ctx.font = `${previewSize * 0.5}px "Material Icons"`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(
-          componentSymbols[draggedComponent.type],
-          previewX + previewSize / 2,
-          previewY + previewSize / 2
-        );
+        drawDragPreview(ctx, dragMousePos, draggedComponent, cellSize);
       }
     };
 
@@ -442,9 +480,13 @@ export default function CanvasGrid({
       if (dropCell && draggedComponent && dragStartCell) {
         const targetCell = gridData[dropCell.row]?.[dropCell.col];
 
-        const isValidDrop =
-          !targetCell?.invalid &&
-          (dropCell.row !== dragStartCell.row || dropCell.col !== dragStartCell.col);
+        const isValidDrop = isValidDropTargt(
+          targetCell,
+          dropCell.row,
+          dropCell.col,
+          dragStartCell.row,
+          dragStartCell.col
+        );
 
         if (isValidDrop) {
           moveComponent(
