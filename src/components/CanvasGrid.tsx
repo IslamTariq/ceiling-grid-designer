@@ -1,51 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "./Toolbar";
-
-const gridCellSizeMeters = 0.6;
-const pixelsPerMeter = 100;
-
-interface GridCell {
-  component?: {
-    type: ComponentType;
-    id: string;
-  };
-  invalid?: boolean;
-}
-
-interface props {
-  rows: number;
-  cols: number;
-  selectedComponentType: ComponentType;
-  onClear?: (clearFn: () => void) => void;
-}
-
-const componentColors: Record<ComponentType, string> = {
-  light: "#F57C00",
-  airSupply: "#2196F3",
-  airReturn: "#4CAF50",
-  smokeDetector: "#FF5722",
-  invalid: "#9E9E9E",
-};
-
-const componentSymbols: Record<ComponentType, string> = {
-  light: "lightbulb",
-  airSupply: "arrow_upward",
-  airReturn: "arrow_downward",
-  smokeDetector: "sensors",
-  invalid: "block",
-};
-
-let componentIdCounter = 0;
-const generateComponentId = () => `comp-${componentIdCounter++}`;
+import ZoomControls from "./ZoomControls";
+import type { GridCell, CanvasGridProps } from "../types";
+import { GRID_CELL_SIZE_METERS, PIXELS_PER_METER, componentColors, componentSymbols } from "../constants/components";
+import { getCellFromMouse } from "../utils/grid";
+import { generateComponentId } from "../utils/idGenerator";
+import "./CanvasGrid.css";
 
 export default function CanvasGrid({
   rows = 0,
   cols = 0,
   selectedComponentType,
   onClear,
-}: props) {
-  // cell size in pixels based on 0.6m
-  const cellSize = gridCellSizeMeters * pixelsPerMeter;
+}: CanvasGridProps) {
+  // Base cell size in pixels based on 0.6m
+  const baseCellSize = GRID_CELL_SIZE_METERS * PIXELS_PER_METER;
+
+  // Zoom state
+  const [zoom, setZoom] = useState(1);
+
+  // Calculate actual cell size based on zoom
+  const cellSize = baseCellSize * zoom;
 
   const [gridData, setGridData] = useState<GridCell[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
@@ -61,31 +36,6 @@ export default function CanvasGrid({
   const [dragMousePos, setDragMousePos] = useState<{ x: number; y: number } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const getCellFromMouse = (mouseX: number, mouseY: number, canvasRect: DOMRect) => {
-    const totalWidth = cols * cellSize;
-    const totalHeight = rows * cellSize;
-    const startX = (canvasRect.width - totalWidth) / 2;
-    const startY = (canvasRect.height - totalHeight) / 2;
-
-    if (
-      mouseX < startX ||
-      mouseX > startX + totalWidth ||
-      mouseY < startY ||
-      mouseY > startY + totalHeight
-    ) {
-      return null;
-    }
-
-    const col = Math.floor((mouseX - startX) / cellSize);
-    const row = Math.floor((mouseY - startY) / cellSize);
-
-    if (row >= 0 && row < rows && col >= 0 && col < cols) {
-      return { row, col };
-    }
-
-    return null;
-  };
 
   const clearGrid = () => {
     setGridData(
@@ -104,6 +54,7 @@ export default function CanvasGrid({
     setDragStartCell(null);
     setDragCurrentCell(null);
     setDragMousePos(null);
+    setZoom(1); 
   };
 
   useEffect(() => {
@@ -131,20 +82,23 @@ export default function CanvasGrid({
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
 
-      const totalWidth = cols * cellSize;
-      const totalHeight = rows * cellSize;
+      ctx.save();
+      ctx.translate(rect.width / 2, rect.height / 2);
+      ctx.scale(zoom, zoom);
 
-      const startX = (rect.width - totalWidth) / 2;
-      const startY = (rect.height - totalHeight) / 2;
+      const totalWidth = cols * baseCellSize;
+      const totalHeight = rows * baseCellSize;
+      const startX = -totalWidth / 2;
+      const startY = -totalHeight / 2;
 
       ctx.strokeStyle = "#8c9193";
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 / zoom;
 
       ctx.fillStyle = "#efe5c7";
       ctx.fillRect(startX, startY, totalWidth, totalHeight);
 
       for (let i = 0; i <= cols; i++) {
-        const x = startX + i * cellSize;
+        const x = startX + i * baseCellSize;
         ctx.beginPath();
         ctx.moveTo(x, startY);
         ctx.lineTo(x, startY + totalHeight);
@@ -152,7 +106,7 @@ export default function CanvasGrid({
       }
 
       for (let i = 0; i <= rows; i++) {
-        const y = startY + i * cellSize;
+        const y = startY + i * baseCellSize;
         ctx.beginPath();
         ctx.moveTo(startX, y);
         ctx.lineTo(startX + totalWidth, y);
@@ -161,8 +115,8 @@ export default function CanvasGrid({
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          const x = startX + col * cellSize;
-          const y = startY + row * cellSize;
+          const x = startX + col * baseCellSize;
+          const y = startY + row * baseCellSize;
 
           if (
             isDragging &&
@@ -171,11 +125,11 @@ export default function CanvasGrid({
             col === dragStartCell.col
           ) {
             ctx.fillStyle = "rgba(33, 150, 243, 0.2)";
-            ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
             ctx.strokeStyle = "#2196F3";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([4, 4]);
-            ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+            ctx.lineWidth = 2 / zoom;
+            ctx.setLineDash([4 / zoom, 4 / zoom]);
+            ctx.strokeRect(x + 2, y + 2, baseCellSize - 4, baseCellSize - 4);
             ctx.setLineDash([]);
             continue;
           }
@@ -183,26 +137,99 @@ export default function CanvasGrid({
           const cell = gridData[row]?.[col];
           if (cell?.invalid) {
             ctx.fillStyle = componentColors.invalid;
-            ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
             ctx.fillStyle = "#666";
-            ctx.font = `${cellSize * 0.5}px "Material Icons"`;
+            ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(componentSymbols.invalid, x + cellSize / 2, y + cellSize / 2);
+            ctx.fillText(componentSymbols.invalid, x + baseCellSize / 2, y + baseCellSize / 2);
           }
 
           if (cell?.component) {
             const compType = cell.component.type;
             ctx.fillStyle = componentColors[compType];
-            ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            ctx.fillRect(x + 1, y + 1, baseCellSize - 2, baseCellSize - 2);
             ctx.fillStyle = "#fff";
-            ctx.font = `${cellSize * 0.5}px "Material Icons"`;
+            ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(componentSymbols[compType], x + cellSize / 2, y + cellSize / 2);
+            ctx.fillText(componentSymbols[compType], x + baseCellSize / 2, y + baseCellSize / 2);
           }
         }
       }
+
+      if (isDragging && dragCurrentCell) {
+        const x = startX + dragCurrentCell.col * baseCellSize;
+        const y = startY + dragCurrentCell.row * baseCellSize;
+        const cell = gridData[dragCurrentCell.row]?.[dragCurrentCell.col];
+
+        const isValidDrop =
+          !cell?.invalid &&
+          (!dragStartCell ||
+            dragCurrentCell.row !== dragStartCell.row ||
+            dragCurrentCell.col !== dragStartCell.col);
+
+        if (isValidDrop) {
+          ctx.fillStyle = "rgba(76, 175, 80, 0.3)";
+          ctx.fillRect(x, y, baseCellSize, baseCellSize);
+          ctx.strokeStyle = "#4CAF50";
+          ctx.lineWidth = 2 / zoom;
+          ctx.setLineDash([4 / zoom, 4 / zoom]);
+          ctx.strokeRect(x + 2, y + 2, baseCellSize - 4, baseCellSize - 4);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = "rgba(244, 67, 54, 0.3)";
+          ctx.fillRect(x, y, baseCellSize, baseCellSize);
+          ctx.strokeStyle = "#f44336";
+          ctx.lineWidth = 2 / zoom;
+          ctx.setLineDash([4 / zoom, 4 / zoom]);
+          ctx.strokeRect(x + 2, y + 2, baseCellSize - 4, baseCellSize - 4);
+          ctx.setLineDash([]);
+        }
+      }
+
+      if (!isDragging && hoveredCell) {
+        const x = startX + hoveredCell.col * baseCellSize;
+        const y = startY + hoveredCell.row * baseCellSize;
+        const cell = gridData[hoveredCell.row]?.[hoveredCell.col];
+
+        if (cell?.component || cell?.invalid) {
+          ctx.fillStyle = "rgba(244, 67, 54, 0.2)";
+          ctx.fillRect(x, y, baseCellSize, baseCellSize);
+          ctx.strokeStyle = "#f44336";
+          ctx.lineWidth = 2 / zoom;
+          ctx.setLineDash([4 / zoom, 4 / zoom]);
+          ctx.strokeRect(x + 2, y + 2, baseCellSize - 4, baseCellSize - 4);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = `${componentColors[selectedComponentType]}30`;
+          ctx.fillRect(x, y, baseCellSize, baseCellSize);
+          ctx.strokeStyle = componentColors[selectedComponentType];
+          ctx.lineWidth = 2 / zoom;
+          ctx.setLineDash([4 / zoom, 4 / zoom]);
+          ctx.strokeRect(x + 2, y + 2, baseCellSize - 4, baseCellSize - 4);
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = componentColors[selectedComponentType];
+          ctx.fillRect(x + 3, y + 3, baseCellSize - 6, baseCellSize - 6);
+          ctx.fillStyle = "#fff";
+          ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(componentSymbols[selectedComponentType], x + baseCellSize / 2, y + baseCellSize / 2);
+        }
+      }
+
+      if (selectedCell) {
+        const x = startX + selectedCell.col * baseCellSize;
+        const y = startY + selectedCell.row * baseCellSize;
+        ctx.strokeStyle = "#f44336";
+        ctx.lineWidth = 2 / zoom;
+        ctx.strokeRect(x, y, baseCellSize, baseCellSize);
+      }
+
+      ctx.restore();
+
 
       if (isDragging && draggedComponent && dragMousePos) {
         const previewSize = cellSize * 0.8;
@@ -224,76 +251,6 @@ export default function CanvasGrid({
           previewX + previewSize / 2,
           previewY + previewSize / 2
         );
-      }
-
-      if (isDragging && dragCurrentCell) {
-        const x = startX + dragCurrentCell.col * cellSize;
-        const y = startY + dragCurrentCell.row * cellSize;
-        const cell = gridData[dragCurrentCell.row]?.[dragCurrentCell.col];
-
-        const isValidDrop =
-          !cell?.invalid &&
-          (!dragStartCell ||
-            dragCurrentCell.row !== dragStartCell.row ||
-            dragCurrentCell.col !== dragStartCell.col);
-
-        if (isValidDrop) {
-          ctx.fillStyle = "rgba(76, 175, 80, 0.3)";
-          ctx.fillRect(x, y, cellSize, cellSize);
-          ctx.strokeStyle = "#4CAF50";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-          ctx.setLineDash([]);
-        } else {
-          ctx.fillStyle = "rgba(244, 67, 54, 0.3)";
-          ctx.fillRect(x, y, cellSize, cellSize);
-          ctx.strokeStyle = "#f44336";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-          ctx.setLineDash([]);
-        }
-      }
-
-      if (!isDragging && hoveredCell) {
-        const x = startX + hoveredCell.col * cellSize;
-        const y = startY + hoveredCell.row * cellSize;
-        const cell = gridData[hoveredCell.row]?.[hoveredCell.col];
-
-        if (cell?.component || cell?.invalid) {
-          ctx.fillStyle = "rgba(244, 67, 54, 0.2)";
-          ctx.fillRect(x, y, cellSize, cellSize);
-          ctx.strokeStyle = "#f44336";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-          ctx.setLineDash([]);
-        } else {
-          ctx.fillStyle = `${componentColors[selectedComponentType]}30`;
-          ctx.fillRect(x, y, cellSize, cellSize);
-          ctx.strokeStyle = componentColors[selectedComponentType];
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-          ctx.setLineDash([]);
-
-          ctx.fillStyle = componentColors[selectedComponentType];
-          ctx.fillRect(x + 3, y + 3, cellSize - 6, cellSize - 6);
-          ctx.fillStyle = "#fff";
-          ctx.font = `${cellSize * 0.5}px "Material Icons"`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(componentSymbols[selectedComponentType], x + cellSize / 2, y + cellSize / 2);
-        }
-      }
-
-      if (selectedCell) {
-        const x = startX + selectedCell.col * cellSize;
-        const y = startY + selectedCell.row * cellSize;
-        ctx.strokeStyle = "#f44336";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, cellSize, cellSize);
       }
     };
 
@@ -318,10 +275,10 @@ export default function CanvasGrid({
       if (isDragging) {
         setDragMousePos({ x: mouseX, y: mouseY });
 
-        const cell = getCellFromMouse(mouseX, mouseY, rect);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
         setDragCurrentCell(cell);
       } else {
-        const cell = getCellFromMouse(mouseX, mouseY, rect);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
         setHoveredCell(cell);
 
         if (cell) {
@@ -345,7 +302,7 @@ export default function CanvasGrid({
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const cell = getCellFromMouse(mouseX, mouseY, rect);
+      const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
       if (cell) {
         const currentCell = gridData[cell.row]?.[cell.col];
 
@@ -367,7 +324,7 @@ export default function CanvasGrid({
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        const cell = getCellFromMouse(mouseX, mouseY, rect);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
 
         if (cell) {
           setSelectedCell(cell);
@@ -405,7 +362,7 @@ export default function CanvasGrid({
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      const dropCell = getCellFromMouse(mouseX, mouseY, rect);
+      const dropCell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
 
       if (dropCell && draggedComponent && dragStartCell) {
         const targetCell = gridData[dropCell.row]?.[dropCell.col];
@@ -452,10 +409,26 @@ export default function CanvasGrid({
       }
     };
 
+    const handleWheel = (e: WheelEvent) => {
+      if (!canvas) return;
+      e.preventDefault();
+
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(5, zoom * zoomFactor));
+
+      setZoom(newZoom);
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mousedown", handleMouseDown);
     canvas.addEventListener("mouseup", handleMouseUp);
     canvas.addEventListener("mouseleave", handleMouseLeave);
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    canvas.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
       window.removeEventListener("resize", resize);
@@ -464,6 +437,8 @@ export default function CanvasGrid({
         canvas.removeEventListener("mousedown", handleMouseDown);
         canvas.removeEventListener("mouseup", handleMouseUp);
         canvas.removeEventListener("mouseleave", handleMouseLeave);
+        canvas.removeEventListener("wheel", handleWheel);
+        canvas.removeEventListener("contextmenu", handleContextMenu);
       }
     };
   }, [
@@ -478,18 +453,25 @@ export default function CanvasGrid({
     dragStartCell,
     dragCurrentCell,
     dragMousePos,
+    zoom,
   ]);
 
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(5, prev * 1.2));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(0.1, prev / 1.2));
+  };
+
   return (
-    <div style={{ width: "100%", height: "calc(100vh - 80px)", flex: 1 }}>
+    <div className="canvas-grid-container">
+      <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       <canvas
         ref={canvasRef}
+        className="canvas-grid-canvas"
         style={{
-          width: "100%",
-          height: "100%",
-          display: "block",
           cursor: isDragging ? "grabbing" : "default",
-          userSelect: "none",
         }}
       />
     </div>
