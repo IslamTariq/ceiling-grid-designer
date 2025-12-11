@@ -13,5 +13,6 @@ export interface CanvasGridProps {
   cols: number;
   selectedComponentType: ComponentType;
   onClear?: (clearFn: () => void) => void;
+  onClearGrid?: (clearGridFn: () => void) => void;
 }
 

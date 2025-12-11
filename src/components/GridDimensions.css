@@ -1,0 +1,101 @@
+.grid-dimensions {
+  display: flex;
+  gap: clamp(4px, 1vw, 8px);
+  align-items: center;
+}
+
+.grid-dimensions-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 0.8vw, 4px);
+  padding: clamp(6px, 1.2vw, 10px) clamp(8px, 1.5vw, 12px);
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  min-width: clamp(55px, 8vw, 70px);
+  flex-shrink: 0;
+}
+
+.grid-dimensions-label-text {
+  font-size: clamp(9px, 1.1vw, 11px);
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.grid-dimensions-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.grid-dimensions-button {
+  background-color: #f5f5f5;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: clamp(14px, 1.8vw, 18px);
+  font-weight: 500;
+  padding: clamp(2px, 0.5vw, 4px) clamp(4px, 0.8vw, 6px);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: clamp(20px, 3vw, 24px);
+  user-select: none;
+  outline: none;
+}
+
+.grid-dimensions-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.grid-dimensions-button:active:not(:disabled) {
+  background-color: #d0d0d0;
+}
+
+.grid-dimensions-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.grid-dimensions-input {
+  width: clamp(40px, 5vw, 50px);
+  padding: clamp(2px, 0.5vw, 3px) clamp(3px, 0.6vw, 4px);
+  border: none;
+  border-left: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+  font-size: clamp(9px, 1.1vw, 11px);
+  text-align: center;
+  transition: border-color 0.15s ease;
+  background-color: #fff;
+  color: #666;
+  font-weight: 500;
+  outline: none;
+}
+
+.grid-dimensions-input:focus {
+  outline: none;
+  border-left-color: #2196F3;
+  border-right-color: #2196F3;
+}
+
+.grid-dimensions-input::-webkit-outer-spin-button,
+.grid-dimensions-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.grid-dimensions-input[type="number"] {
+  -moz-appearance: textfield;
+}
+

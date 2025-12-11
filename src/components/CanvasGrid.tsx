@@ -12,6 +12,7 @@ export default function CanvasGrid({
   cols = 0,
   selectedComponentType,
   onClear,
+  onClearGrid,
 }: CanvasGridProps) {
   // Base cell size in pixels based on 0.6m
   const baseCellSize = GRID_CELL_SIZE_METERS * PIXELS_PER_METER;
@@ -96,7 +97,8 @@ export default function CanvasGrid({
     });
   };
 
-  const clearGrid = () => {
+
+  const initializeGrid = () => {
     setGridData(
       Array(rows)
         .fill(null)
@@ -113,14 +115,19 @@ export default function CanvasGrid({
     setDragStartCell(null);
     setDragCurrentCell(null);
     setDragMousePos(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
     isPanningRef.current = false;
     panStartPosRef.current = null;
   };
 
+
+  const clearGrid = () => {
+    initializeGrid();
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
   useEffect(() => {
-    clearGrid();
+    initializeGrid();
   }, [rows, cols]);
 
   useEffect(() => {
@@ -128,6 +135,12 @@ export default function CanvasGrid({
       onClear(clearGrid);
     }
   }, [onClear]);
+
+  useEffect(() => {
+    if (onClearGrid) {
+      onClearGrid(initializeGrid);
+    }
+  }, [onClearGrid]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -152,6 +165,36 @@ export default function CanvasGrid({
           dropRow !== startRow ||
           dropCol !== startCol)
       );
+    };
+
+
+    const getVisibleCellRange = (
+      canvasWidth: number,
+      canvasHeight: number,
+      zoom: number,
+      panX: number,
+      panY: number,
+      rows: number,
+      cols: number,
+      baseCellSize: number
+    ): { startRow: number; endRow: number; startCol: number; endCol: number } => {
+      const totalWidth = cols * baseCellSize;
+      const totalHeight = rows * baseCellSize;
+      const gridStartX = -totalWidth / 2;
+      const gridStartY = -totalHeight / 2;
+
+      const viewportLeft = -canvasWidth / (2 * zoom) - panX;
+      const viewportRight = canvasWidth / (2 * zoom) - panX;
+      const viewportTop = -canvasHeight / (2 * zoom) - panY;
+      const viewportBottom = canvasHeight / (2 * zoom) - panY;
+
+      const padding = 1;
+      const startCol = Math.max(0, Math.floor((viewportLeft - gridStartX) / baseCellSize) - padding);
+      const endCol = Math.min(cols - 1, Math.ceil((viewportRight - gridStartX) / baseCellSize) + padding);
+      const startRow = Math.max(0, Math.floor((viewportTop - gridStartY) / baseCellSize) - padding);
+      const endRow = Math.min(rows - 1, Math.ceil((viewportBottom - gridStartY) / baseCellSize) + padding);
+
+      return { startRow, endRow, startCol, endCol };
     };
 
     const drawCellComponent = (
@@ -217,6 +260,17 @@ export default function CanvasGrid({
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
 
+      const visibleRange = getVisibleCellRange(
+        rect.width,
+        rect.height,
+        zoom,
+        pan.x,
+        pan.y,
+        rows,
+        cols,
+        baseCellSize
+      );
+
       ctx.save();
       ctx.translate(rect.width / 2, rect.height / 2);
       ctx.scale(zoom, zoom);
@@ -233,7 +287,7 @@ export default function CanvasGrid({
       ctx.fillStyle = "#efe5c7";
       ctx.fillRect(startX, startY, totalWidth, totalHeight);
 
-      for (let i = 0; i <= cols; i++) {
+      for (let i = visibleRange.startCol; i <= visibleRange.endCol + 1; i++) {
         const x = startX + i * baseCellSize;
         ctx.beginPath();
         ctx.moveTo(x, startY);
@@ -241,7 +295,7 @@ export default function CanvasGrid({
         ctx.stroke();
       }
 
-      for (let i = 0; i <= rows; i++) {
+      for (let i = visibleRange.startRow; i <= visibleRange.endRow + 1; i++) {
         const y = startY + i * baseCellSize;
         ctx.beginPath();
         ctx.moveTo(startX, y);
@@ -249,8 +303,8 @@ export default function CanvasGrid({
         ctx.stroke();
       }
 
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
+      for (let row = visibleRange.startRow; row <= visibleRange.endRow; row++) {
+        for (let col = visibleRange.startCol; col <= visibleRange.endCol; col++) {
           const x = startX + col * baseCellSize;
           const y = startY + row * baseCellSize;
 
