@@ -1,13 +1,50 @@
 import { useEffect, useRef, useState } from "react";
+import type { ComponentType } from "./Toolbar";
+
+interface GridCell {
+  component?: {
+    type: ComponentType;
+    id: string;
+  };
+  invalid?: boolean;
+}
 
 interface props {
   rows: number;
   cols: number;
   cellSize: number;
+  selectedComponentType: ComponentType;
+  onClear?: (clearFn: () => void) => void;
 }
 
-export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props) {
-  const [gridData, setGridData] = useState<boolean[][]>([]);
+const componentColors: Record<ComponentType, string> = {
+  light: "#F57C00",
+  airSupply: "#2196F3",
+  airReturn: "#4CAF50",
+  smokeDetector: "#FF5722",
+  invalid: "#9E9E9E",
+};
+
+
+const componentSymbols: Record<ComponentType, string> = {
+  light: "lightbulb",
+  airSupply: "arrow_upward",
+  airReturn: "arrow_downward",
+  smokeDetector: "sensors",
+  invalid: "block",
+};
+
+let componentIdCounter = 0;
+const generateComponentId = () => `comp-${componentIdCounter++}`;
+
+export default function CanvasGrid({
+  rows = 0,
+  cols = 0,
+  cellSize = 40,
+  selectedComponentType,
+  onClear,
+}: props) {
+  const [gridData, setGridData] = useState<GridCell[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
 
@@ -39,17 +76,34 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
     return null;
   };
 
-  useEffect(() => {
+  const clearGrid = () => {
     setGridData(
       Array(rows)
         .fill(null)
-        .map(() => Array(cols).fill(false))
+        .map(() => Array(cols).fill(null).map(() => ({} as GridCell)))
     );
+    setSelectedCell(null);
+    setHoveredCell(null);
+  };
+
+  useEffect(() => {
+    clearGrid();
   }, [rows, cols]);
+
+
+  useEffect(() => {
+    if (onClear) {
+      onClear(clearGrid);
+    }
+  }, [onClear]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
 
     const draw = () => {
@@ -88,11 +142,29 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
 
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          if (gridData[row]?.[col]) {
-            const x = startX + col * cellSize;
-            const y = startY + row * cellSize;
-            ctx.fillStyle = "blue";
+          const cell = gridData[row]?.[col];
+          const x = startX + col * cellSize;
+          const y = startY + row * cellSize;
+
+          if (cell?.invalid) {
+            ctx.fillStyle = componentColors.invalid;
             ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            ctx.fillStyle = "#666";
+            ctx.font = `${cellSize * 0.5}px "Material Icons"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(componentSymbols.invalid, x + cellSize / 2, y + cellSize / 2);
+          }
+
+          if (cell?.component) {
+            const compType = cell.component.type;
+            ctx.fillStyle = componentColors[compType];
+            ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            ctx.fillStyle = "#fff";
+            ctx.font = `${cellSize * 0.5}px "Material Icons"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(componentSymbols[compType], x + cellSize / 2, y + cellSize / 2);
           }
         }
       }
@@ -100,18 +172,46 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
       if (hoveredCell) {
         const x = startX + hoveredCell.col * cellSize;
         const y = startY + hoveredCell.row * cellSize;
-        ctx.fillStyle = "green";
-        ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+        const cell = gridData[hoveredCell.row]?.[hoveredCell.col];
+        
+        if (cell?.component || cell?.invalid) {
+          ctx.fillStyle = "rgba(244, 67, 54, 0.2)";
+          ctx.fillRect(x, y, cellSize, cellSize);
+          ctx.strokeStyle = "#f44336";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = `${componentColors[selectedComponentType]}30`;
+          ctx.fillRect(x, y, cellSize, cellSize);
+          ctx.strokeStyle = componentColors[selectedComponentType];
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = componentColors[selectedComponentType];
+          ctx.fillRect(x + 3, y + 3, cellSize - 6, cellSize - 6);
+          ctx.fillStyle = "#fff";
+          ctx.font = `${cellSize * 0.5}px "Material Icons"`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(componentSymbols[selectedComponentType], x + cellSize / 2, y + cellSize / 2);
+        }
       }
 
       if (selectedCell) {
         const x = startX + selectedCell.col * cellSize;
         const y = startY + selectedCell.row * cellSize;
-        ctx.fillStyle = "red";
-        ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+        ctx.strokeStyle = "#f44336";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, cellSize, cellSize);
       }
     };
+
     const resize = () => {
+      if (!canvas || !ctx) return;
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -123,6 +223,7 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
     window.addEventListener("resize", resize);
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -134,6 +235,7 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
     };
 
     const handleMouseClick = (e: MouseEvent) => {
+      if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -141,13 +243,32 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
       const cell = getCellFromMouse(mouseX, mouseY, rect);
       if (cell) {
         setSelectedCell(cell);
+        const currentCell = gridData[cell.row]?.[cell.col];
 
-        setGridData((prev) => {
-          const newData = [...prev];
-          newData[cell.row] = [...newData[cell.row]];
-          newData[cell.row][cell.col] = !newData[cell.row][cell.col];
-          return newData;
-        });
+        if (currentCell?.component || currentCell?.invalid) {
+          setGridData((prev) => {
+            const newData = [...prev];
+            newData[cell.row] = [...newData[cell.row]];
+            newData[cell.row][cell.col] = {};
+            return newData;
+          });
+        } else {
+          setGridData((prev) => {
+            const newData = [...prev];
+            newData[cell.row] = [...newData[cell.row]];
+            if (selectedComponentType === "invalid") {
+              newData[cell.row][cell.col] = { invalid: true };
+            } else {
+              newData[cell.row][cell.col] = {
+                component: {
+                  type: selectedComponentType,
+                  id: generateComponentId(),
+                },
+              };
+            }
+            return newData;
+          });
+        }
         draw();
       }
     };
@@ -157,14 +278,15 @@ export default function CanvasGrid({ rows = 0, cols = 0, cellSize = 40 }: props)
 
     return () => {
       window.removeEventListener("resize", resize);
-      cancelAnimationFrame(rafRef.current);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("click", handleMouseClick);
+      if (canvas) {
+        canvas.removeEventListener("mousemove", handleMouseMove);
+        canvas.removeEventListener("click", handleMouseClick);
+      }
     };
-  }, [rows, cols, cellSize, gridData, hoveredCell, selectedCell]);
+  }, [rows, cols, cellSize, gridData, hoveredCell, selectedCell, selectedComponentType]);
 
   return (
-    <div style={{ width: "100%", height: "calc(100vh - 50px)" }}>
+    <div style={{ width: "100%", height: "calc(100vh - 80px)", flex: 1 }}>
       <canvas
         ref={canvasRef}
         style={{
