@@ -10,6 +10,7 @@ Add, remove, and move components on a grid
 Pan and zoom functionality
 Support for 5 component types (Lights, Air Supply, Air Return, Smoke Detectors, Invalid Grid)
 Standard 0.6m x 0.6m grid cell size
+Optimization for multiple cells and cells can be added by user
 
 
 
@@ -29,6 +30,7 @@ Move Component: Drag component to new cell
 Pan: Middle/Right mouse button + drag
 Zoom: Mouse wheel or zoom buttons
 Reset: Click Reset button to clear grid
+AddCells: Click plus minus button to add cells or type numbers
 
 
 
