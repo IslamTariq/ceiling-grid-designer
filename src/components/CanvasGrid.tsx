@@ -43,7 +43,7 @@ export default function CanvasGrid({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const addCompnent = (row: number, col: number, type: ComponentType) => {
+  const addComponent = (row: number, col: number, type: ComponentType) => {
     setGridData((prev) => {
       const newData = [...prev];
       newData[row] = [...newData[row]];
@@ -62,7 +62,7 @@ export default function CanvasGrid({
   };
 
   
-  const removeComponnt = (row: number, col: number) => {
+  const removeComponent = (row: number, col: number) => {
     setGridData((prev) => {
       const newData = [...prev];
       newData[row] = [...newData[row]];
@@ -517,9 +517,9 @@ export default function CanvasGrid({
           const currentCell = gridData[cell.row]?.[cell.col];
 
           if (currentCell?.component || currentCell?.invalid) {
-            removeComponnt(cell.row, cell.col);
+            removeComponent(cell.row, cell.col);
           } else {
-            addCompnent(cell.row, cell.col, selectedComponentType);
+            addComponent(cell.row, cell.col, selectedComponentType);
           }
           draw();
         }
