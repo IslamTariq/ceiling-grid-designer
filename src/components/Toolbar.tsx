@@ -34,10 +34,12 @@ export default function Toolbar({
           className={`toolbar-button ${selectedComponentType === component.id ? "selected" : ""}`}
           onClick={() => onComponentTypeChange(component.id)}
           title={component.name}
-          style={{
-            "--component-color": component.color,
-            "--hover-bg": `${component.color}15`,
-          } as React.CSSProperties}
+          style={
+            {
+              "--component-color": component.color,
+              "--hover-bg": `${component.color}15`,
+            } as React.CSSProperties
+          }
         >
           <i className="material-icons toolbar-icon">{component.iconName}</i>
           <span className="toolbar-text">{component.name}</span>
