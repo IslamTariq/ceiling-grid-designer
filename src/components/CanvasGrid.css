@@ -1,0 +1,14 @@
+.canvas-grid-container {
+  width: 100%;
+  height: calc(100vh - 80px);
+  flex: 1;
+  position: relative;
+}
+
+.canvas-grid-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
