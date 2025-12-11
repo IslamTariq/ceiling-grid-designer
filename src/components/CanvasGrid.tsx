@@ -42,6 +42,60 @@ export default function CanvasGrid({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const addCompnent = (row: number, col: number, type: ComponentType) => {
+    setGridData((prev) => {
+      const newData = [...prev];
+      newData[row] = [...newData[row]];
+      if (type === "invalid") {
+        newData[row][col] = { invalid: true };
+      } else {
+        newData[row][col] = {
+          component: {
+            type,
+            id: generateComponentId(),
+          },
+        };
+      }
+      return newData;
+    });
+  };
+
+  
+  const removeComponnt = (row: number, col: number) => {
+    setGridData((prev) => {
+      const newData = [...prev];
+      newData[row] = [...newData[row]];
+      newData[row][col] = {};
+      return newData;
+    });
+  };
+
+  const moveComponent = (
+    fromRow: number,
+    fromCol: number,
+    toRow: number,
+    toCol: number
+  ) => {
+    setGridData((prev) => {
+      const newData = [...prev];
+      const sourceCell = newData[fromRow]?.[fromCol];
+      
+      if (!sourceCell?.component) {
+        return prev; 
+      }
+
+      newData[fromRow] = [...newData[fromRow]];
+      newData[fromRow][fromCol] = {};
+
+      newData[toRow] = [...newData[toRow]];
+      newData[toRow][toCol] = {
+        component: sourceCell.component,
+      };
+
+      return newData;
+    });
+  };
+
   const clearGrid = () => {
     setGridData(
       Array(rows)
@@ -371,28 +425,9 @@ export default function CanvasGrid({
           const currentCell = gridData[cell.row]?.[cell.col];
 
           if (currentCell?.component || currentCell?.invalid) {
-            setGridData((prev) => {
-              const newData = [...prev];
-              newData[cell.row] = [...newData[cell.row]];
-              newData[cell.row][cell.col] = {};
-              return newData;
-            });
+            removeComponnt(cell.row, cell.col);
           } else {
-            setGridData((prev) => {
-              const newData = [...prev];
-              newData[cell.row] = [...newData[cell.row]];
-              if (selectedComponentType === "invalid") {
-                newData[cell.row][cell.col] = { invalid: true };
-              } else {
-                newData[cell.row][cell.col] = {
-                  component: {
-                    type: selectedComponentType,
-                    id: generateComponentId(),
-                  },
-                };
-              }
-              return newData;
-            });
+            addCompnent(cell.row, cell.col, selectedComponentType);
           }
           draw();
         }
@@ -412,21 +447,12 @@ export default function CanvasGrid({
           (dropCell.row !== dragStartCell.row || dropCell.col !== dragStartCell.col);
 
         if (isValidDrop) {
-          setGridData((prev) => {
-            const newData = [...prev];
-            newData[dragStartCell.row] = [...newData[dragStartCell.row]];
-            newData[dragStartCell.row][dragStartCell.col] = {};
-
-            newData[dropCell.row] = [...newData[dropCell.row]];
-            newData[dropCell.row][dropCell.col] = {
-              component: {
-                type: draggedComponent.type,
-                id: draggedComponent.id,
-              },
-            };
-
-            return newData;
-          });
+          moveComponent(
+            dragStartCell.row,
+            dragStartCell.col,
+            dropCell.row,
+            dropCell.col
+          );
         }
       }
 
