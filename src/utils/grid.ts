@@ -5,14 +5,17 @@ export const getCellFromMouse = (
   mouseY: number,
   canvasRect: DOMRect,
   zoom: number,
+  panX: number,
+  panY: number,
   rows: number,
   cols: number
 ): { row: number; col: number } | null => {
   const baseCellSize = GRID_CELL_SIZE_METERS * PIXELS_PER_METER;
   const centerX = canvasRect.width / 2;
   const centerY = canvasRect.height / 2;
-  const worldX = (mouseX - centerX) / zoom;
-  const worldY = (mouseY - centerY) / zoom;
+  
+  const worldX = (mouseX - centerX) / zoom - panX;
+  const worldY = (mouseY - centerY) / zoom - panY;
 
   const totalWidth = cols * baseCellSize;
   const totalHeight = rows * baseCellSize;

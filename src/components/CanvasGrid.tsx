@@ -19,6 +19,11 @@ export default function CanvasGrid({
   // Zoom state
   const [zoom, setZoom] = useState(1);
 
+  
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const panStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
   // Calculate actual cell size based on zoom
   const cellSize = baseCellSize * zoom;
 
@@ -54,7 +59,10 @@ export default function CanvasGrid({
     setDragStartCell(null);
     setDragCurrentCell(null);
     setDragMousePos(null);
-    setZoom(1); 
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    isPanningRef.current = false;
+    panStartPosRef.current = null;
   };
 
   useEffect(() => {
@@ -85,6 +93,7 @@ export default function CanvasGrid({
       ctx.save();
       ctx.translate(rect.width / 2, rect.height / 2);
       ctx.scale(zoom, zoom);
+      ctx.translate(pan.x, pan.y); 
 
       const totalWidth = cols * baseCellSize;
       const totalHeight = rows * baseCellSize;
@@ -272,13 +281,25 @@ export default function CanvasGrid({
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
+      if (isPanningRef.current && panStartPosRef.current) {
+        const deltaX = (mouseX - panStartPosRef.current.x) / zoom;
+        const deltaY = (mouseY - panStartPosRef.current.y) / zoom;
+        setPan((prev) => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+        }));
+        panStartPosRef.current = { x: mouseX, y: mouseY };
+        draw();
+        return;
+      }
+
       if (isDragging) {
         setDragMousePos({ x: mouseX, y: mouseY });
 
-        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
         setDragCurrentCell(cell);
       } else {
-        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
         setHoveredCell(cell);
 
         if (cell) {
@@ -302,7 +323,17 @@ export default function CanvasGrid({
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
+      if (e.button === 1 || e.button === 2) {
+        e.preventDefault();
+        isPanningRef.current = true;
+        panStartPosRef.current = { x: mouseX, y: mouseY };
+        canvas.style.cursor = "grabbing";
+        return;
+      }
+
+      if (e.button !== 0) return;
+
+      const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
       if (cell) {
         const currentCell = gridData[cell.row]?.[cell.col];
 
@@ -320,11 +351,20 @@ export default function CanvasGrid({
     const handleMouseUp = (e: MouseEvent) => {
       if (!canvas) return;
 
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        panStartPosRef.current = null;
+        canvas.style.cursor = "default";
+        return;
+      }
+
+      if (e.button !== 0) return;
+
       if (!isDragging) {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
+        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
 
         if (cell) {
           setSelectedCell(cell);
@@ -362,7 +402,7 @@ export default function CanvasGrid({
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      const dropCell = getCellFromMouse(mouseX, mouseY, rect, zoom, rows, cols);
+      const dropCell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
 
       if (dropCell && draggedComponent && dragStartCell) {
         const targetCell = gridData[dropCell.row]?.[dropCell.col];
@@ -399,6 +439,11 @@ export default function CanvasGrid({
     };
 
     const handleMouseLeave = () => {
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        panStartPosRef.current = null;
+        if (canvas) canvas.style.cursor = "default";
+      }
       if (isDragging) {
         setIsDragging(false);
         setDraggedComponent(null);
@@ -454,6 +499,7 @@ export default function CanvasGrid({
     dragCurrentCell,
     dragMousePos,
     zoom,
+    pan,
   ]);
 
   const handleZoomIn = () => {
@@ -471,7 +517,7 @@ export default function CanvasGrid({
         ref={canvasRef}
         className="canvas-grid-canvas"
         style={{
-          cursor: isDragging ? "grabbing" : "default",
+          cursor: isPanningRef.current ? "grabbing" : isDragging ? "grabbing" : "default",
         }}
       />
     </div>
