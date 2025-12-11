@@ -23,7 +23,6 @@ function App() {
       <CanvasGrid
         rows={10}
         cols={10}
-        cellSize={40}
         selectedComponentType={selectedComponentType}
         onClear={(clearFn) => {
           clearGridRef.current = clearFn;

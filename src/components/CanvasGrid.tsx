@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "./Toolbar";
 
+const gridCellSizeMeters = 0.6;
+const pixelsPerMeter = 100;
+
 interface GridCell {
   component?: {
     type: ComponentType;
@@ -12,7 +15,6 @@ interface GridCell {
 interface props {
   rows: number;
   cols: number;
-  cellSize: number;
   selectedComponentType: ComponentType;
   onClear?: (clearFn: () => void) => void;
 }
@@ -39,10 +41,12 @@ const generateComponentId = () => `comp-${componentIdCounter++}`;
 export default function CanvasGrid({
   rows = 0,
   cols = 0,
-  cellSize = 40,
   selectedComponentType,
   onClear,
 }: props) {
+  // cell size in pixels based on 0.6m
+  const cellSize = gridCellSizeMeters * pixelsPerMeter;
+
   const [gridData, setGridData] = useState<GridCell[][]>([]);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
@@ -57,7 +61,6 @@ export default function CanvasGrid({
   const [dragMousePos, setDragMousePos] = useState<{ x: number; y: number } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number>();
 
   const getCellFromMouse = (mouseX: number, mouseY: number, canvasRect: DOMRect) => {
     const totalWidth = cols * cellSize;
@@ -466,7 +469,6 @@ export default function CanvasGrid({
   }, [
     rows,
     cols,
-    cellSize,
     gridData,
     hoveredCell,
     selectedCell,
