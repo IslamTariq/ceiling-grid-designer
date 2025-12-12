@@ -640,7 +640,11 @@ export default function CanvasGrid({
 
   return (
     <div className="canvas-grid-container">
-      <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onZoomReset={handleZoomReset} />
+      <ZoomControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+      />
       <canvas
         ref={canvasRef}
         className="canvas-grid-canvas"
