@@ -13,6 +13,7 @@ interface ToolbarProps {
   cols: number;
   onRowsChange: (rows: number) => void;
   onColsChange: (cols: number) => void;
+  onResetDimensions?: () => void;
 }
 
 export default function Toolbar({
@@ -24,6 +25,7 @@ export default function Toolbar({
   cols,
   onRowsChange,
   onColsChange,
+  onResetDimensions,
 }: ToolbarProps) {
   return (
     <div className="toolbar-container">
@@ -32,6 +34,7 @@ export default function Toolbar({
         cols={cols}
         onRowsChange={onRowsChange}
         onColsChange={onColsChange}
+        onReset={onResetDimensions}
       />
       <div className="toolbar-separator" />
       {COMPONENT_CONFIGS.map((component) => (

@@ -1,8 +1,10 @@
 .canvas-grid-container {
   width: 100%;
-  height: calc(100vh - 80px);
+  height: calc(100vh - clamp(60px, 12vw, 100px));
   flex: 1;
   position: relative;
+  min-height: 300px;
+  overflow: hidden;
 }
 
 .canvas-grid-canvas {
@@ -10,5 +12,6 @@
   height: 100%;
   display: block;
   user-select: none;
+  touch-action: none;
 }
 

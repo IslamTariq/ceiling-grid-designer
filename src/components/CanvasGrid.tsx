@@ -43,60 +43,6 @@ export default function CanvasGrid({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const addComponent = (row: number, col: number, type: ComponentType) => {
-    setGridData((prev) => {
-      const newData = [...prev];
-      newData[row] = [...newData[row]];
-      if (type === "invalid") {
-        newData[row][col] = { invalid: true };
-      } else {
-        newData[row][col] = {
-          component: {
-            type,
-            id: generateComponentId(),
-          },
-        };
-      }
-      return newData;
-    });
-  };
-
-  
-  const removeComponent = (row: number, col: number) => {
-    setGridData((prev) => {
-      const newData = [...prev];
-      newData[row] = [...newData[row]];
-      newData[row][col] = {};
-      return newData;
-    });
-  };
-
-  const moveComponent = (
-    fromRow: number,
-    fromCol: number,
-    toRow: number,
-    toCol: number
-  ) => {
-    setGridData((prev) => {
-      const newData = [...prev];
-      const sourceCell = newData[fromRow]?.[fromCol];
-      
-      if (!sourceCell?.component) {
-        return prev; 
-      }
-
-      newData[fromRow] = [...newData[fromRow]];
-      newData[fromRow][fromCol] = {};
-
-      newData[toRow] = [...newData[toRow]];
-      newData[toRow][toCol] = {
-        component: sourceCell.component,
-      };
-
-      return newData;
-    });
-  };
-
 
   const initializeGrid = () => {
     setGridData(
@@ -150,6 +96,59 @@ export default function CanvasGrid({
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
+
+    const addComponent = (row: number, col: number, type: ComponentType) => {
+      setGridData((prev) => {
+        const newData = [...prev];
+        newData[row] = [...newData[row]];
+        if (type === "invalid") {
+          newData[row][col] = { invalid: true };
+        } else {
+          newData[row][col] = {
+            component: {
+              type,
+              id: generateComponentId(),
+            },
+          };
+        }
+        return newData;
+      });
+    };
+
+    const removeComponent = (row: number, col: number) => {
+      setGridData((prev) => {
+        const newData = [...prev];
+        newData[row] = [...newData[row]];
+        newData[row][col] = {};
+        return newData;
+      });
+    };
+
+    const moveComponent = (
+      fromRow: number,
+      fromCol: number,
+      toRow: number,
+      toCol: number
+    ) => {
+      setGridData((prev) => {
+        const newData = [...prev];
+        const sourceCell = newData[fromRow]?.[fromCol];
+        
+        if (!sourceCell?.component) {
+          return prev; 
+        }
+
+        newData[fromRow] = [...newData[fromRow]];
+        newData[fromRow][fromCol] = {};
+
+        newData[toRow] = [...newData[toRow]];
+        newData[toRow][toCol] = {
+          component: sourceCell.component,
+        };
+
+        return newData;
+      });
+    };
 
     const isValidDropTargt = (
       targetCell: GridCell | undefined,
@@ -506,12 +505,13 @@ export default function CanvasGrid({
 
       if (e.button !== 0) return;
 
-      if (!isDragging) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const cell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
 
+      if (!isDragging) {
+        // Simple click (not dragging) - add or remove component
         if (cell) {
           setSelectedCell(cell);
           const currentCell = gridData[cell.row]?.[cell.col];
@@ -521,34 +521,35 @@ export default function CanvasGrid({
           } else {
             addComponent(cell.row, cell.col, selectedComponentType);
           }
-          draw();
         }
         return;
       }
 
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const dropCell = getCellFromMouse(mouseX, mouseY, rect, zoom, pan.x, pan.y, rows, cols);
+      // Dragging a component - check if it's a click (same cell) or a move (different cell)
+      if (isDragging && dragStartCell) {
+        if (cell && cell.row === dragStartCell.row && cell.col === dragStartCell.col) {
+          // Clicked on the same cell - remove the component
+          removeComponent(cell.row, cell.col);
+        } else if (cell && draggedComponent) {
+          // Dragged to a different cell - move the component
+          const targetCell = gridData[cell.row]?.[cell.col];
 
-      if (dropCell && draggedComponent && dragStartCell) {
-        const targetCell = gridData[dropCell.row]?.[dropCell.col];
-
-        const isValidDrop = isValidDropTargt(
-          targetCell,
-          dropCell.row,
-          dropCell.col,
-          dragStartCell.row,
-          dragStartCell.col
-        );
-
-        if (isValidDrop) {
-          moveComponent(
+          const isValidDrop = isValidDropTargt(
+            targetCell,
+            cell.row,
+            cell.col,
             dragStartCell.row,
-            dragStartCell.col,
-            dropCell.row,
-            dropCell.col
+            dragStartCell.col
           );
+
+          if (isValidDrop) {
+            moveComponent(
+              dragStartCell.row,
+              dragStartCell.col,
+              cell.row,
+              cell.col
+            );
+          }
         }
       }
 
@@ -632,9 +633,14 @@ export default function CanvasGrid({
     setZoom((prev) => Math.max(0.1, prev / 1.2));
   };
 
+  const handleZoomReset = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
   return (
     <div className="canvas-grid-container">
-      <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+      <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onZoomReset={handleZoomReset} />
       <canvas
         ref={canvasRef}
         className="canvas-grid-canvas"

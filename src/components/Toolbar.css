@@ -4,9 +4,11 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: clamp(4px, 1vw, 8px);
-  padding: clamp(8px, 1.5vw, 12px) clamp(10px, 2.5vw, 20px);
+  padding: clamp(6px, 1.2vw, 10px) clamp(8px, 2vw, 16px);
   border-bottom: 1px solid #e8e8e8;
   background-color: #fafafa;
+  min-height: clamp(50px, 10vw, 80px);
+  max-height: none;
 }
 
 .toolbar-button {

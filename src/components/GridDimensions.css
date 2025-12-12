@@ -1,7 +1,8 @@
 .grid-dimensions {
   display: flex;
-  gap: clamp(4px, 1vw, 8px);
+  gap: clamp(3px, 0.8vw, 6px);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .grid-dimensions-item {
@@ -97,5 +98,52 @@
 
 .grid-dimensions-input[type="number"] {
   -moz-appearance: textfield;
+}
+
+.grid-dimensions-reset-item {
+  min-width: auto;
+  padding: clamp(6px, 1.2vw, 10px) clamp(4px, 0.8vw, 6px);
+}
+
+.grid-dimensions-reset-button {
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  padding: clamp(2px, 0.5vw, 4px) clamp(3px, 0.6vw, 4px);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(40px, 5vw, 50px);
+  height: clamp(24px, 3.5vw, 30px);
+  outline: none;
+  font-weight: 500;
+}
+
+.grid-dimensions-reset-icon {
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1;
+  transition: color 0.15s ease;
+  color: #2196F3;
+}
+
+.grid-dimensions-reset-button:hover {
+  background-color: #e0e0e0;
+  border-color: #2196F3;
+}
+
+.grid-dimensions-reset-button:hover .grid-dimensions-reset-icon {
+  color: #1976D2;
+}
+
+.grid-dimensions-reset-button:active {
+  background-color: #d0d0d0;
+  border-color: #1976D2;
+}
+
+.grid-dimensions-reset-button:active .grid-dimensions-reset-icon {
+  color: #1565C0;
 }
 
