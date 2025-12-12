@@ -31,14 +31,17 @@ function App() {
   };
 
   return (
-    <div className="App" style={{ 
-      height: "100vh", 
-      display: "flex", 
-      flexDirection: "column",
-      width: "100%",
-      overflow: "hidden",
-      minWidth: "320px"
-    }}>
+    <div
+      className="App"
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        overflow: "hidden",
+        minWidth: "320px",
+      }}
+    >
       <Toolbar
         selectedComponentType={selectedComponentType}
         onComponentTypeChange={setSelectedComponentType}

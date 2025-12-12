@@ -20,7 +20,9 @@
   justify-content: center;
   font-size: clamp(16px, 2.2vw, 20px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   touch-action: manipulation;
 }
 
@@ -37,4 +39,3 @@
   font-size: 16px;
   font-weight: bold;
 }
-

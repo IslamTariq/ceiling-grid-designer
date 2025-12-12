@@ -15,4 +15,3 @@ export interface CanvasGridProps {
   onClear?: (clearFn: () => void) => void;
   onClearGrid?: (clearGridFn: () => void) => void;
 }
-

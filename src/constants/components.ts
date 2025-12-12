@@ -33,4 +33,3 @@ export const componentSymbols: Record<ComponentType, string> = {
   smokeDetector: "sensors",
   invalid: "block",
 };
-

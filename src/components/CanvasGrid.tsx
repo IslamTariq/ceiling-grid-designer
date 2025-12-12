@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import type { GridCell, CanvasGridProps } from "../types";
-import { GRID_CELL_SIZE_METERS, PIXELS_PER_METER, componentColors, componentSymbols } from "../constants/components";
+import {
+  GRID_CELL_SIZE_METERS,
+  PIXELS_PER_METER,
+  componentColors,
+  componentSymbols,
+} from "../constants/components";
 import { getCellFromMouse } from "../utils/grid";
 import { generateComponentId } from "../utils/idGenerator";
 import "./CanvasGrid.css";
@@ -20,7 +25,6 @@ export default function CanvasGrid({
   // Zoom state
   const [zoom, setZoom] = useState(1);
 
-  
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const isPanningRef = useRef(false);
   const panStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -43,7 +47,6 @@ export default function CanvasGrid({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-
   const initializeGrid = () => {
     setGridData(
       Array(rows)
@@ -64,7 +67,6 @@ export default function CanvasGrid({
     isPanningRef.current = false;
     panStartPosRef.current = null;
   };
-
 
   const clearGrid = () => {
     initializeGrid();
@@ -124,18 +126,13 @@ export default function CanvasGrid({
       });
     };
 
-    const moveComponent = (
-      fromRow: number,
-      fromCol: number,
-      toRow: number,
-      toCol: number
-    ) => {
+    const moveComponent = (fromRow: number, fromCol: number, toRow: number, toCol: number) => {
       setGridData((prev) => {
         const newData = [...prev];
         const sourceCell = newData[fromRow]?.[fromCol];
-        
+
         if (!sourceCell?.component) {
-          return prev; 
+          return prev;
         }
 
         newData[fromRow] = [...newData[fromRow]];
@@ -159,13 +156,9 @@ export default function CanvasGrid({
     ): boolean => {
       return (
         !targetCell?.invalid &&
-        (startRow === null ||
-          startCol === null ||
-          dropRow !== startRow ||
-          dropCol !== startCol)
+        (startRow === null || startCol === null || dropRow !== startRow || dropCol !== startCol)
       );
     };
-
 
     const getVisibleCellRange = (
       canvasWidth: number,
@@ -188,10 +181,19 @@ export default function CanvasGrid({
       const viewportBottom = canvasHeight / (2 * zoom) - panY;
 
       const padding = 1;
-      const startCol = Math.max(0, Math.floor((viewportLeft - gridStartX) / baseCellSize) - padding);
-      const endCol = Math.min(cols - 1, Math.ceil((viewportRight - gridStartX) / baseCellSize) + padding);
+      const startCol = Math.max(
+        0,
+        Math.floor((viewportLeft - gridStartX) / baseCellSize) - padding
+      );
+      const endCol = Math.min(
+        cols - 1,
+        Math.ceil((viewportRight - gridStartX) / baseCellSize) + padding
+      );
       const startRow = Math.max(0, Math.floor((viewportTop - gridStartY) / baseCellSize) - padding);
-      const endRow = Math.min(rows - 1, Math.ceil((viewportBottom - gridStartY) / baseCellSize) + padding);
+      const endRow = Math.min(
+        rows - 1,
+        Math.ceil((viewportBottom - gridStartY) / baseCellSize) + padding
+      );
 
       return { startRow, endRow, startCol, endCol };
     };
@@ -224,7 +226,6 @@ export default function CanvasGrid({
         ctx.fillText(componentSymbols[compType], x + baseCellSize / 2, y + baseCellSize / 2);
       }
     };
-
 
     const drawDragPreview = (
       ctx: CanvasRenderingContext2D,
@@ -273,7 +274,7 @@ export default function CanvasGrid({
       ctx.save();
       ctx.translate(rect.width / 2, rect.height / 2);
       ctx.scale(zoom, zoom);
-      ctx.translate(pan.x, pan.y); 
+      ctx.translate(pan.x, pan.y);
 
       const totalWidth = cols * baseCellSize;
       const totalHeight = rows * baseCellSize;
@@ -388,7 +389,11 @@ export default function CanvasGrid({
           ctx.font = `${baseCellSize * 0.5}px "Material Icons"`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(componentSymbols[selectedComponentType], x + baseCellSize / 2, y + baseCellSize / 2);
+          ctx.fillText(
+            componentSymbols[selectedComponentType],
+            x + baseCellSize / 2,
+            y + baseCellSize / 2
+          );
         }
       }
 
@@ -401,7 +406,6 @@ export default function CanvasGrid({
       }
 
       ctx.restore();
-      
 
       if (isDragging && draggedComponent && dragMousePos) {
         drawDragPreview(ctx, dragMousePos, draggedComponent, cellSize);
@@ -543,12 +547,7 @@ export default function CanvasGrid({
           );
 
           if (isValidDrop) {
-            moveComponent(
-              dragStartCell.row,
-              dragStartCell.col,
-              cell.row,
-              cell.col
-            );
+            moveComponent(dragStartCell.row, dragStartCell.col, cell.row, cell.col);
           }
         }
       }

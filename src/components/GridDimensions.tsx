@@ -150,7 +150,9 @@ export default function GridDimensions({
       </div>
       {onReset && (
         <div className="grid-dimensions-item grid-dimensions-reset-item">
-          <span className="grid-dimensions-label-text" style={{ opacity: 0, visibility: "hidden" }}>Reset</span>
+          <span className="grid-dimensions-label-text" style={{ opacity: 0, visibility: "hidden" }}>
+            Reset
+          </span>
           <button
             type="button"
             className="grid-dimensions-reset-button"
@@ -197,4 +199,3 @@ export default function GridDimensions({
     </div>
   );
 }
-

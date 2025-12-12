@@ -46,7 +46,9 @@
   font-size: clamp(14px, 1.8vw, 18px);
   font-weight: 500;
   padding: clamp(2px, 0.5vw, 4px) clamp(4px, 0.8vw, 6px);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,8 +88,8 @@
 
 .grid-dimensions-input:focus {
   outline: none;
-  border-left-color: #2196F3;
-  border-right-color: #2196F3;
+  border-left-color: #2196f3;
+  border-right-color: #2196f3;
 }
 
 .grid-dimensions-input::-webkit-outer-spin-button,
@@ -126,24 +128,23 @@
   font-size: clamp(16px, 2vw, 18px);
   line-height: 1;
   transition: color 0.15s ease;
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .grid-dimensions-reset-button:hover {
   background-color: #e0e0e0;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .grid-dimensions-reset-button:hover .grid-dimensions-reset-icon {
-  color: #1976D2;
+  color: #1976d2;
 }
 
 .grid-dimensions-reset-button:active {
   background-color: #d0d0d0;
-  border-color: #1976D2;
+  border-color: #1976d2;
 }
 
 .grid-dimensions-reset-button:active .grid-dimensions-reset-icon {
-  color: #1565C0;
+  color: #1565c0;
 }
-
